@@ -12,6 +12,7 @@ import { TransactionService } from './transaction.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Response } from 'express';
+import { isUUID } from 'class-validator';
 
 @Controller('transaction')
 export class TransactionController {
@@ -29,25 +30,91 @@ export class TransactionController {
   }
 
   @Get()
-  findAll() {
-    return this.transactionService.findAll();
+  async findAll(@Res() res: Response) {
+    const transactions = await this.transactionService.findAll();
+    res.status(200).send(transactions);
+    return;
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.transactionService.findOne(+id);
+  async findOne(@Param('id') id: string, @Res() res: Response) {
+    if (!isUUID(id)) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+
+    const transaction = await this.transactionService.findOne(id);
+    if (!transaction) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+    res.status(200).send(transaction);
+    return;
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateTransactionDto: UpdateTransactionDto,
+    @Res() res: Response,
   ) {
-    return this.transactionService.update(+id, updateTransactionDto);
+    if (!isUUID(id)) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+
+    const updatedTransaction = await this.transactionService.update(
+      id,
+      updateTransactionDto,
+    );
+
+    if (!updatedTransaction) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+
+    res.status(200).send(updatedTransaction);
+    return;
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transactionService.remove(+id);
+  async remove(@Param('id') id: string, @Res() res: Response) {
+    if (!isUUID(id)) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+
+    const transactionExists = await this.transactionService.remove(id);
+    if (!transactionExists) {
+      res.status(404).send({
+        message: 'transaction not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+      return;
+    }
+
+    res.sendStatus(204);
+    return;
   }
 }
